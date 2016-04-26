@@ -1,0 +1,128 @@
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
+using namespace std;
+using namespace cv;
+
+
+void ImgMean(float& c1, float& c2, float& c3, Mat pImg)
+{
+	int nPixel = pImg.rows*pImg.cols;	// number of pixels in image
+	c1 = 0; c2 = 0; c3 = 0;
+
+	uchar* pData = pImg.data;
+	uchar* pcurPixel = pData;
+	//累加各通道的值
+
+	for (int y = 0; y< pImg.rows; y++)
+	{
+		pcurPixel = pData;
+		for (int x = 0; x < pImg.cols; x++)
+		{
+			c1 += pcurPixel[0];
+			c2 += pcurPixel[1];
+			c3 += pcurPixel[2];
+			pcurPixel += 3;
+		}
+		pData += pImg.step;
+	}
+
+	//累加各通道的值
+
+	c1 = c1 / nPixel;
+	c2 = c2 / nPixel;
+	c3 = c3 / nPixel;
+}
+
+int bSums(Mat &src)
+{
+	int counter = 0;
+	//迭代器访问像素点
+	Mat_<uchar>::iterator it = src.begin<uchar>();
+	Mat_<uchar>::iterator itend = src.end<uchar>();
+	for (; it != itend; ++it)
+	{
+		if ((*it)>0) counter += 1;//二值化后，像素点是0或者255
+	}
+	return counter;
+}
+int main(){
+
+	Mat srcImg = imread("G:/fire/ship1.jpg");
+	Mat m_pcurFrameYCrCb;
+	Mat pImgResult;
+
+	m_pcurFrameYCrCb.create(srcImg.size(), srcImg.type());
+
+	pImgResult.create(srcImg.size(), srcImg.type());
+	
+	m_pcurFrameYCrCb = srcImg.clone();
+	//cvtColor(srcImg, m_pcurFrameYCrCb, CV_BGR2YCrCb);
+
+	uchar* pData = (uchar*)srcImg.data;
+	uchar* pDataYCrCb = (uchar*)m_pcurFrameYCrCb.data;
+
+	uchar* pDataResult = (uchar*)pImgResult.data;
+
+	uchar* pcurPixel = pData;
+	uchar* pcurPixelYCrCb = pDataYCrCb;
+	uchar* pcurPixelResult = pDataResult;
+
+	float yy_mean = 0, cr_mean = 0, cb_mean = 0;
+
+
+	ImgMean(cb_mean, cr_mean, yy_mean, m_pcurFrameYCrCb);
+	uchar r = 0, g = 0, b = 0;
+	uchar yy = 0, cr = 0, cb = 0;
+
+	for (int y = 0; y< srcImg.rows; y++)
+	{
+		pcurPixel = pData + y*srcImg.step;
+		pcurPixelYCrCb = pDataYCrCb + y*m_pcurFrameYCrCb.step;
+		pcurPixelResult = pDataResult + y* pImgResult.step;
+
+		for (int x = 0; x < srcImg.cols; x++)
+		{
+			b = pcurPixel[0];
+			g = pcurPixel[1];
+			r = pcurPixel[2];
+
+			cb = pcurPixelYCrCb[0];
+			cr = pcurPixelYCrCb[1];
+			yy = pcurPixelYCrCb[2];
+			//根据公式判断该点是否符合火焰颜色模型的条件
+			if (r>120 && yy>cb&&cr>cb&&yy>yy_mean && (abs(cb - cr)>40))
+			{
+				//*pcurPixelResult = 255;
+				pcurPixelResult[0] = 255;
+				pcurPixelResult[1] = 255;
+				pcurPixelResult[2] = 255;
+
+			}
+			else
+			{
+				//*pcurPixelResult = 0;
+				pcurPixelResult[0] = 0;
+				pcurPixelResult[1] = 0;
+				pcurPixelResult[2] = 0;
+			}
+			pcurPixel += 3;
+			pcurPixelYCrCb += 3;
+			//pcurPixelResult++;
+			pcurPixelResult += 3;
+		}
+	}
+
+	//彩色图转灰度图
+	cvtColor(pImgResult, pImgResult, COLOR_BGR2GRAY);
+	//二值化
+	//threshold(pImgResult, pImgResult, 80, 255, CV_THRESH_BINARY);
+	//cout << bSums(pImgResult) << endl;
+	namedWindow("Color", WINDOW_NORMAL);
+	imshow("Color", pImgResult);
+
+	waitKey(0);
+
+	return 0;
+}

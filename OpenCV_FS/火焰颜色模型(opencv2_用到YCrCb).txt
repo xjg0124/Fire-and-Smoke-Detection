@@ -1,0 +1,102 @@
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
+using namespace std;
+using namespace cv;
+
+
+void ImgMean(float& c1, float& c2, float& c3, Mat pImg)
+{
+	int nPixel = pImg.rows*pImg.cols;	// number of pixels in image
+	c1 = 0; c2 = 0; c3 = 0;
+
+	//累加各通道的值
+	MatConstIterator_<Vec3b> it = pImg.begin<Vec3b>();
+	MatConstIterator_<Vec3b> itend = pImg.end<Vec3b>();
+
+	while (it != itend)
+	{
+		c1 += (*it)[0];
+		c2 += (*it)[1];
+		c3 += (*it)[2];
+		it++;
+
+	}
+	//累加各通道的值
+
+	c1 = c1 / nPixel;
+	c2 = c2 / nPixel;
+	c3 = c3 / nPixel;
+}
+
+int bSums(Mat &src)
+{
+	int counter = 0;
+	//迭代器访问像素点
+	Mat_<uchar>::iterator it = src.begin<uchar>();
+	Mat_<uchar>::iterator itend = src.end<uchar>();
+	for (; it != itend; ++it)
+	{
+		if ((*it)>0) counter += 1;//二值化后，像素点是0或者255
+	}
+	return counter;
+}
+int main(){
+
+	Mat srcImg = imread("G:/fire/ship1.jpg");
+	Mat m_pcurFrameYCrCb;
+	Mat pImgResult;
+
+	m_pcurFrameYCrCb.create(srcImg.size(), srcImg.type());
+	pImgResult.create(srcImg.size(), srcImg.type());
+	cvtColor(srcImg, m_pcurFrameYCrCb, CV_BGR2YCrCb);
+	//m_pcurFrameYCrCb = srcImg.clone();
+
+	float yy_mean = 0, cr_mean = 0, cb_mean = 0;
+	ImgMean(cb_mean, cr_mean, yy_mean, m_pcurFrameYCrCb);
+	uchar r = 0, g = 0, b = 0;
+	uchar yy = 0, cr = 0, cb = 0;
+
+
+	for (int i = 0; i<srcImg.rows; i++){
+		for (int j = 0; j<srcImg.cols; j++){
+
+			b = srcImg.at<Vec3b>(i, j)[0];
+			g = srcImg.at<Vec3b>(i, j)[1];
+			r = srcImg.at<Vec3b>(i, j)[2];
+
+			cb = m_pcurFrameYCrCb.at<Vec3b>(i, j)[0];
+			cr = m_pcurFrameYCrCb.at<Vec3b>(i, j)[1];
+			yy = m_pcurFrameYCrCb.at<Vec3b>(i, j)[2];
+
+			if (r>120 && yy>cb&&cr>cb&&yy>yy_mean && (abs(cb - cr)>40))
+				//if (r>12 && r>g && g>b && yy>cb&&cr>cb && cr>cr_mean  && cb<cb_mean && yy>yy_mean && (abs(cb - cr)>40))
+			{
+				pImgResult.at<Vec3b>(i, j)[0] = 255;
+				pImgResult.at<Vec3b>(i, j)[1] = 255;
+				pImgResult.at<Vec3b>(i, j)[2] = 255;
+
+			}
+			else
+			{
+				pImgResult.at<Vec3b>(i, j)[0] = 0;
+				pImgResult.at<Vec3b>(i, j)[1] = 0;
+				pImgResult.at<Vec3b>(i, j)[2] = 0;
+
+			}
+
+		}
+	}
+	//彩色图转灰度图
+	cvtColor(pImgResult, pImgResult, COLOR_BGR2GRAY);
+	//二值化
+	//threshold(pImgResult, pImgResult, 80, 255, CV_THRESH_BINARY);
+	cout << bSums(pImgResult) << endl;
+	namedWindow("Color", WINDOW_NORMAL);
+	imshow("Color", pImgResult);
+
+	waitKey(0);
+
+	return 0;
+}
