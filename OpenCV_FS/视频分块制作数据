@@ -1,0 +1,120 @@
+// video_cut.cpp : 定义控制台应用程序的入口点。
+//
+//-----------------------------------【】----------------------------  
+//     代码作用：对视频进行分块，制作数据    
+//     OpenCV源代码版本：3.0.0    
+//     by：xuejiguang
+//     Time:2016/10/09	
+//-------------------------------------------------------------------
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
+#include <vector>
+#include <direct.h>
+using namespace std;
+using namespace cv;
+
+string filename = "C:/Users/Administrator/Desktop/video/smoke/68";
+
+//图像块结构体
+struct FraRIO
+{
+	Mat frameRIO;
+	int point_x;
+	int point_y;
+	bool RIO_flag;
+
+};
+//每帧图像分块
+vector<FraRIO>  DivFra(Mat &image, int width, int height, int di)
+{
+	char name = 1;
+	int m, n;
+	m = image.rows / height;
+	n = image.cols / width;
+	vector<FraRIO> FraRIO_Out;
+	FraRIO temFraRIO;
+	int num = 1;
+
+	for (int j = 0; j<m; j++)
+	{
+		for (int i = 0; i<n; i++)
+		{
+			Mat temImage(height, width, CV_8UC3, cv::Scalar(0, 0, 0));//
+			Mat imageROI = image(Rect(i*width, j*height, temImage.cols, temImage.rows));//rect(x, y, width, height)选定感兴趣区域
+			addWeighted(temImage, 1.0, imageROI, 1.0, 0., temImage);//复制扫描出的边界内数据
+
+			temFraRIO.frameRIO = temImage.clone();
+			temFraRIO.point_x = i*width;
+			temFraRIO.point_y = j*height;
+			FraRIO_Out.push_back(temFraRIO);
+
+			stringstream result;
+
+			//输出图片到制定文件夹
+			result << filename <<  "/" << num << "/" << di << ".jpg";
+			imwrite(result.str(), temImage);
+			num++;
+		}
+	}
+	return FraRIO_Out;
+}
+
+int main()
+{
+	//读取视频
+	string  file = filename + ".avi";
+	VideoCapture capture(file);
+	if (!capture.isOpened())
+		return -1;
+
+	//
+	double rate = capture.get(CV_CAP_PROP_FPS);
+	int delay = 1000 / rate;
+
+	//定义当前帧和临时帧
+	Mat frame;
+
+	//定义前一帧和当前帧分割后的结构体数组
+	vector<FraRIO> frame_RIO;
+
+
+	bool Idir = false;
+	int di = 1;
+	stringstream dir;
+
+	namedWindow("image", CV_WINDOW_AUTOSIZE);
+
+	while (capture.read(frame)){
+
+		//创建子文件夹
+		if (Idir == false){
+
+			for (int i = 1; i <= (frame.rows / 24) * (frame.cols / 24); i++){
+				dir << filename << "/" << i;
+				_mkdir(dir.str().c_str());
+				//清空stringstream缓存
+				dir.str("");
+			}
+			Idir = true;
+		}
+
+		//对当前帧进行分割，大小24*24
+		frame_RIO = DivFra(frame, 24, 24, di);
+		di++;
+
+/*		vector<FraRIO>::iterator it = frame_RIO.begin();
+		//对结构体数组进行遍历
+		while (it != frame_RIO.end())
+		{
+			//画出矩形框
+			rectangle(frame, cvPoint(it->point_x, it->point_y), cvPoint(it->point_x + it->frameRIO.cols, it->point_y + it->frameRIO.rows), Scalar(255, 0, 0), 1, 1, 0);//能够实时显示运动物体
+			it++;
+		}
+		imshow("image", frame);
+		waitKey(delay);*/
+
+	}
+	return 0;
+}
