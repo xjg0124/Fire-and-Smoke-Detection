@@ -14,9 +14,9 @@ import caffe
 def Smoke_detector(VideoPath):
     
     # model
-    model_def_file = './model/0.991/conv3d_smoke_deploy.prototxt'
-    model_file = './model/0.991/conv3d_smoke_iter_52000'
-    mean_file = './model/0.99/smoke_train_mean.binaryproto'
+    model_def_file = './model/conv3d_smoke_deploy.prototxt'
+    model_file = './model/conv3d_smoke_iter_52000'
+    mean_file = './model/smoke_train_mean.binaryproto'
     net = caffe.Net(model_def_file, model_file)
 
     # caffe init
