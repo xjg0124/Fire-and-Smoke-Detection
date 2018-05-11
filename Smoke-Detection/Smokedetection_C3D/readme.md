@@ -1,2 +1,2 @@
-Caffe https://github.com/facebook/C3D
+https://github.com/facebook/C3D
 
