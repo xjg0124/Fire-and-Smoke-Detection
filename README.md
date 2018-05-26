@@ -10,3 +10,7 @@
 然后,使用训练好的神经网络对图像进行分类
 （计划使用3D卷积神经网络来对烟火进行特征提取识别。
   在Facebook的C3D基础上进行修改。）
+  
+ 新的烟雾检测方法：
+ 
+ https://github.com/xjg0124/Video_Smoke_Detection
